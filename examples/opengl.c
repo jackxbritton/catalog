@@ -2,6 +2,8 @@
 #include "catalog.h"
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 // Helper functions.
 char *load_entire_file(const char *filename);
@@ -20,6 +22,18 @@ typedef struct Shader Shader;
 int shader_init(Shader *shader, const char *vert_path, const char *frag_path);
 void shader_destroy(Shader *shader);
 void shader_reload(Shader *shader);
+
+// Texture struct and functions.
+struct Texture {
+    char *path;
+    GLuint texture;
+    int index;
+};
+typedef struct Texture Texture;
+
+int texture_init(Texture *texture, const char *path);
+void texture_destroy(Texture *texture);
+void texture_reload(Texture *texture);
 
 int main(int argc, char *argv[]) {
 
@@ -64,6 +78,10 @@ int main(int argc, char *argv[]) {
     Shader shader;
     if (!shader_init(&shader, "../examples/shaders/basic.vs.glsl", "../examples/shaders/basic.fs.glsl")) return 1;
 
+    // Texture.
+    Texture texture;
+    if (!texture_init(&texture, "../examples/test.png")) return 1;
+
     // Catalog.
     if (!catalog_init(&catalog)) {
         perror("catalog_init");
@@ -71,7 +89,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (!catalog_add(&catalog, "../examples/shaders/basic.vs.glsl", shader_reload, &shader) ||
-        !catalog_add(&catalog, "../examples/shaders/basic.fs.glsl", shader_reload, &shader)) {
+        !catalog_add(&catalog, "../examples/shaders/basic.fs.glsl", shader_reload, &shader) ||
+        !catalog_add(&catalog, "../examples/test.png", texture_reload, &texture)) {
         perror("catalog_add");
         return 1;
     }
@@ -135,7 +154,7 @@ int main(int argc, char *argv[]) {
         // Draw.
         glClear(GL_COLOR_BUFFER_BIT);
         glUseProgram(shader.program);
-        glUniform1i(u_texture, 0);
+        glUniform1i(u_texture, texture.index);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         SDL_GL_SwapWindow(window);
@@ -262,4 +281,59 @@ shader_reload_exit:
     if (vert_src == NULL) free(vert_src);
     if (frag_src == NULL) free(frag_src);
 
+}
+
+int texture_init(Texture *texture, const char *path) {
+
+    static int index = 0;
+
+    texture->path = strdup(path);
+    texture->index = index;
+    texture_reload(texture);
+
+    index++;
+
+    return 1;
+}
+
+void texture_destroy(Texture *texture) {
+    free(texture->path);
+}
+
+void texture_reload(Texture *texture) {
+    int w, h, n;
+    unsigned char *data = stbi_load(texture->path, &w, &h, &n, 0);
+    if (data == NULL) {
+        fprintf(stderr, "Couldn't load image '%s'.", texture->path);
+        return;
+    }
+
+    glGenTextures(1, &texture->texture);
+    glActiveTexture(GL_TEXTURE0 + texture->index);
+    glBindTexture(GL_TEXTURE_2D, texture->texture);
+
+    if (n == 1) {
+        // It's an alpha mask.
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+    } else if (n == 3) {
+        // 3-channel image.
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
+    } else if (n == 4) {
+        // 4-channel image.
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_ABGR_EXT, GL_UNSIGNED_BYTE, data);
+    } else {
+        fprintf(stderr, "texture_reload: n = %d not handled yet.", n);
+    }
+
+    // Clean up.
+    stbi_image_free(data);
 }

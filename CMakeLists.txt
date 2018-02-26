@@ -9,4 +9,4 @@ add_executable(basic src/catalog.c examples/basic.c)
 
 project(opengl)
 add_executable(opengl src/catalog.c examples/opengl.c)
-target_link_libraries(opengl SDL2 GL GLEW)
+target_link_libraries(opengl m SDL2 GL GLEW)
