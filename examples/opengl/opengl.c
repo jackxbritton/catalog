@@ -80,11 +80,11 @@ int main(int argc, char *argv[]) {
 
     // Shader.
     Shader shader;
-    if (!shader_init(&shader, "../examples/shaders/basic.vs.glsl", "../examples/shaders/basic.fs.glsl")) return 1;
+    if (!shader_init(&shader, "../examples/opengl/shaders/basic.vs.glsl", "../examples/opengl/shaders/basic.fs.glsl")) return 1;
 
     // Texture.
     Texture texture;
-    if (!texture_init(&texture, "../examples/test.png")) return 1;
+    if (!texture_init(&texture, "../examples/opengl/test.png")) return 1;
 
     // Catalog.
     if (!catalog_init(&catalog)) {
@@ -92,9 +92,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (!catalog_add(&catalog, "../examples/shaders/basic.vs.glsl", shader_reload, &shader) ||
-        !catalog_add(&catalog, "../examples/shaders/basic.fs.glsl", shader_reload, &shader) ||
-        !catalog_add(&catalog, "../examples/test.png", texture_reload, &texture)) {
+    if (!catalog_add(&catalog, "../examples/opengl/shaders/basic.vs.glsl", shader_reload, &shader) ||
+        !catalog_add(&catalog, "../examples/opengl/shaders/basic.fs.glsl", shader_reload, &shader) ||
+        !catalog_add(&catalog, "../examples/opengl/test.png", texture_reload, &texture)) {
         perror("catalog_add");
         return 1;
     }
