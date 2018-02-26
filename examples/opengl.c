@@ -74,6 +74,10 @@ int main(int argc, char *argv[]) {
     glewExperimental = GL_TRUE;
     glewInit();
 
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+
     // Shader.
     Shader shader;
     if (!shader_init(&shader, "../examples/shaders/basic.vs.glsl", "../examples/shaders/basic.fs.glsl")) return 1;
